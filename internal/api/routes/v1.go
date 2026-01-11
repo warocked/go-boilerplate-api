@@ -7,6 +7,8 @@ import (
 )
 
 // SetupV1Routes configures v1 API routes
-func SetupV1Routes(v1 fiber.Router) {
+func SetupV1Routes(api fiber.Router) {
+	v1 := api.Group("/v1")
+
 	v1.Post("/login", handlers.LoginHandler)
 }

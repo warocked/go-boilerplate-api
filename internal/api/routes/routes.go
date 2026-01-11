@@ -7,13 +7,14 @@ import (
 )
 
 func SetupRoutes(app *fiber.App) {
-	v1 := app.Group("/v1")
+	// API routes
+	api := app.Group("/api")
 
 	// Health check route
-	v1.Get("/health", handlers.Health)
+	api.Get("/health", handlers.Health)
 
 	// v1 API routes
-	SetupV1Routes(v1)
+	SetupV1Routes(api)
 
 	// WebSocket routes
 	SetupWebSocketRoutes(app)
