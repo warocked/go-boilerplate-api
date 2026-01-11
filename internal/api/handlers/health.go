@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"go-boilerplate-api/internal/api/db"
+	"go-boilerplate-api/shared/helpers"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -12,25 +13,21 @@ func Health(ctx *fiber.Ctx) error {
 	healthCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	status := fiber.Map{
-		"status": "ok",
-		"checks": fiber.Map{},
-	}
+	checks := fiber.Map{}
+	httpStatus := fiber.StatusOK
 
 	if db.DB != nil {
 		err := db.HealthCheckGORM(healthCtx)
 		poolStats, statsErr := db.GetPoolStats()
 		
 		if err != nil {
-			status["checks"].(fiber.Map)["postgres"] = fiber.Map{
+			checks["postgres"] = fiber.Map{
 				"status": "error",
+				"message": err.Error(),
 			}
-			status["status"] = "degraded"
+			httpStatus = fiber.StatusServiceUnavailable
 		} else {
-			postgresCheck := fiber.Map{
-				"status": "ok",
-			}
-			
+			postgresCheck := fiber.Map{"status": "ok"}
 			if statsErr == nil && poolStats != nil {
 				postgresCheck["stats"] = fiber.Map{
 					"max_open_connections": poolStats.MaxOpenConnections,
@@ -44,27 +41,24 @@ func Health(ctx *fiber.Ctx) error {
 					"max_lifetime_closed":  poolStats.MaxLifetimeClosed,
 				}
 			}
-			
-			status["checks"].(fiber.Map)["postgres"] = postgresCheck
+			checks["postgres"] = postgresCheck
 		}
 	}
 
 	if db.RedisClient != nil {
 		err := db.HealthCheckRedis(healthCtx)
 		if err != nil {
-			status["checks"].(fiber.Map)["redis"] = fiber.Map{
+			checks["redis"] = fiber.Map{
 				"status": "error",
+				"message": err.Error(),
 			}
-			status["status"] = "degraded"
+			if httpStatus == fiber.StatusOK {
+				httpStatus = fiber.StatusServiceUnavailable
+			}
 		} else {
-			status["checks"].(fiber.Map)["redis"] = fiber.Map{
-				"status": "ok",
-			}
+			checks["redis"] = fiber.Map{"status": "ok"}
 		}
 	}
 
-	if status["status"] == "ok" {
-		return ctx.Status(fiber.StatusOK).JSON(status)
-	}
-	return ctx.Status(fiber.StatusServiceUnavailable).JSON(status)
+	return helpers.SendSuccess(ctx, httpStatus, checks, "Health check completed")
 }

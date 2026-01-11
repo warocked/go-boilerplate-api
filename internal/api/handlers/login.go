@@ -14,19 +14,14 @@ type LoginParams struct {
 func LoginHandler(c *fiber.Ctx) error {
 	var params LoginParams
 
-	// Parse JSON body
 	if err := c.BodyParser(&params); err != nil {
-		return helpers.SendError(c, fiber.StatusBadRequest, "invalid_request", "Invalid request body")
+		return helpers.SendBadRequest(c, "invalid_request", "Invalid request body")
 	}
 
-	// Validate input
 	if err := helpers.ValidateStruct(&params); err != nil {
-		return helpers.SendError(c, fiber.StatusBadRequest, "validation_error", err.Error())
+		return helpers.SendBadRequest(c, "validation_error", err.Error())
 	}
 
-	// - Check username/password against database
-	// - Generate JWT token
-	// - Return token
-
+	// TODO: Implement login logic
 	return helpers.SendError(c, fiber.StatusNotImplemented, "not_implemented", "Login functionality not yet implemented")
 }
